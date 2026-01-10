@@ -1,0 +1,248 @@
+import { useState, useEffect } from 'react';
+import { Plus, Edit, Trash2, Search } from 'lucide-react';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
+import DataTable from '@/components/ui/DataTable';
+import Modal from '@/components/ui/Modal';
+import SupplierForm from './SupplierForm';
+import { toast } from 'react-toastify';
+import { useAuthStore } from '@/store/authStore';
+import api from '@/api/axios';
+
+export default function SupplierList() {
+  const { hasPermission } = useAuthStore();
+  const canCreate = hasPermission('master-data.create');
+  const canEdit = hasPermission('master-data.edit');
+  const canDelete = hasPermission('master-data.delete');
+
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [mode, setMode] = useState('create');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+
+  const columns = [
+    {
+      key: 'nama_supplier',
+      label: 'Nama Supplier',
+      sortable: true,
+      render: (value, row) => (
+        <div>
+          <div className="font-medium text-gray-900">{value}</div>
+          <div className="text-xs text-gray-500">{row.alamat}</div>
+        </div>
+      )
+    },
+    {
+      key: 'telepon',
+      label: 'Kontak',
+      render: (value, row) => (
+        <div className="space-y-1">
+          {value && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500">Telp:</span>
+              <a
+                href={`tel:${value}`}
+                className="font-medium text-blue-600 hover:text-blue-700"
+              >
+                {value}
+              </a>
+            </div>
+          )}
+          {row.kontak && (
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-gray-500">CP:</span>
+              <span className="font-medium text-gray-900">{row.kontak}</span>
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'actions',
+      label: 'Aksi',
+      align: 'center',
+      render: (_, row) => (
+        <div className="flex items-center justify-center gap-2">
+          {canEdit && (
+            <Button size="sm" variant="ghost" onClick={() => handleEdit(row)}><Edit className="w-4 h-4" /></Button>
+          )}
+          {canDelete && (
+            <Button size="sm" variant="ghost" onClick={() => handleDelete(row)}><Trash2 className="w-4 h-4 text-error-500" /></Button>
+          )}
+        </div>
+      )
+    }
+  ];
+
+  useEffect(() => { fetchData(); }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/suppliers');
+      setData(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      toast.error('Gagal memuat data supplier');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreate = () => {
+    if (!canCreate) {
+      toast.error('Anda tidak memiliki akses untuk menambah supplier');
+      return;
+    }
+    setMode('create');
+    setSelectedItem(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = (item) => {
+    if (!canEdit) {
+      toast.error('Anda tidak memiliki akses untuk mengubah supplier');
+      return;
+    }
+    setMode('edit');
+    setSelectedItem(item);
+    setShowModal(true);
+  };
+  const handleDelete = (item) => {
+    if (!canDelete) {
+      toast.error('Anda tidak memiliki akses untuk menghapus supplier');
+      return;
+    }
+    if (window.confirm(`Hapus supplier ${item.nama_supplier}?\n\nPerhatian: Pastikan tidak ada transaksi pembelian yang terkait dengan supplier ini.`)) {
+      api
+        .delete(`/suppliers/${item.kode_supplier}`)
+        .then(() => {
+          toast.success('Supplier berhasil dihapus');
+          fetchData();
+        })
+        .catch((error) => {
+          const msg = error?.response?.data?.error;
+          toast.error(msg || 'Gagal menghapus supplier');
+        });
+    }
+  };
+
+  const handleSubmit = async (values) => {
+    if (mode === 'create' && !canCreate) {
+      toast.error('Anda tidak memiliki akses untuk menambah supplier');
+      return;
+    }
+    if (mode === 'edit' && !canEdit) {
+      toast.error('Anda tidak memiliki akses untuk mengubah supplier');
+      return;
+    }
+
+    try {
+      if (mode === 'create') {
+        await api.post('/suppliers', values);
+        toast.success('Supplier berhasil ditambahkan');
+      }
+
+      if (mode === 'edit') {
+        await api.put(`/suppliers/${selectedItem.kode_supplier}`, values);
+        toast.success('Supplier berhasil diperbarui');
+      }
+
+      setShowModal(false);
+      fetchData();
+    } catch (error) {
+      const msg = error?.response?.data?.error;
+      toast.error(msg || 'Gagal menyimpan supplier');
+    }
+  };
+
+  // Filter data berdasarkan search query
+  const filteredData = data.filter(item => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      item.nama_supplier?.toLowerCase().includes(query) ||
+      item.alamat?.toLowerCase().includes(query) ||
+      item.telepon?.toLowerCase().includes(query) ||
+      item.kontak?.toLowerCase().includes(query)
+    );
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = filteredData.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  return (
+    <div className="flex flex-col gap-4 h-[calc(100vh-40px)]">
+      <Card className="flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <Input
+              placeholder="Cari supplier (nama, telepon, kota)..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              startIcon={<Search className="w-4 h-4" />}
+            />
+          </div>
+          {canCreate && (
+            <Button onClick={handleCreate} startIcon={<Plus className="w-4 h-4" />}>
+              Tambah Supplier
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      <Card padding={false} className="flex-1 overflow-hidden">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+        ) : filteredData.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              {searchQuery ? 'Tidak ada data yang sesuai dengan pencarian' : 'Belum ada data supplier'}
+            </p>
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={filteredData}
+            loading={loading}
+            pagination={false}
+            stickyHeader
+            maxHeight="100%"
+          />
+        )}
+      </Card>
+
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={
+          mode === 'create'
+            ? 'Tambah Supplier'
+            : mode === 'edit'
+              ? 'Edit Supplier'
+              : 'Edit Supplier'
+        }
+      >
+        <SupplierForm
+          initialData={selectedItem}
+          mode={mode}
+          onSubmit={handleSubmit}
+          onCancel={() => setShowModal(false)}
+        />
+      </Modal>
+    </div>
+  );
+}
