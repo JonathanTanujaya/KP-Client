@@ -6,8 +6,10 @@ const runtimeApiBaseUrl =
     ? window.stoir.apiBaseUrl
     : undefined;
 
+const defaultApiBaseUrl = import.meta.env.PROD ? '/api' : 'http://127.0.0.1:3131/api';
+
 const api = axios.create({
-  baseURL: runtimeApiBaseUrl || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:3131/api',
+  baseURL: runtimeApiBaseUrl || import.meta.env.VITE_API_BASE_URL || defaultApiBaseUrl,
   timeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
   headers: {
     'Content-Type': 'application/json',
