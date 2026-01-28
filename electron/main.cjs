@@ -41,7 +41,9 @@ async function startServerOnPort(port) {
 
   actualApiPort = port;
   process.env.STOIR_API_PORT = String(actualApiPort);
-  process.env.STOIR_API_BASE_URL = `http://${API_HOST}:${actualApiPort}/api`;
+  if (!process.env.STOIR_API_BASE_URL) {
+    process.env.STOIR_API_BASE_URL = `http://${API_HOST}:${actualApiPort}/api`;
+  }
   return instance;
 }
 

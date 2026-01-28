@@ -20,7 +20,8 @@ export default function SetupOwner() {
 
         (async () => {
             try {
-                const res = await api.get('/auth/bootstrap-status');
+                // Cache-buster: avoid stale cached responses causing redirect loops
+                const res = await api.get(`/auth/bootstrap-status?t=${Date.now()}`);
                 const hasUsers = Boolean(res?.data?.hasUsers);
                 if (!cancelled && hasUsers) {
                     navigate('/login', { replace: true });

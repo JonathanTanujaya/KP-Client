@@ -18,7 +18,8 @@ export default function RestoreDatabase() {
 
         (async () => {
             try {
-                const res = await api.get('/auth/bootstrap-status');
+                // Cache-buster: avoid stale cached responses
+                const res = await api.get(`/auth/bootstrap-status?t=${Date.now()}`);
                 const hasUsers = Boolean(res?.data?.hasUsers);
                 if (!cancelled && hasUsers) {
                     navigate('/login', { replace: true });
