@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import api from '@/api/axios';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Box } from 'lucide-react';
 
 export default function Login() {
     const navigate = useNavigate();
-    const location = useLocation();
     const { login, loginAsGuest } = useAuthStore();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -14,32 +12,6 @@ export default function Login() {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [shake, setShake] = useState(false);
-
-    useEffect(() => {
-        // If we came from setup-owner (via replace), skip the bootstrap check
-        // to avoid redirect loop when backend has eventual consistency issues
-        const cameFromSetup = location.state?.fromSetup === true;
-        if (cameFromSetup) return;
-
-        let cancelled = false;
-
-        (async () => {
-            try {
-                // Cache-buster: avoid stale cached responses causing redirect loops
-                const res = await api.get(`/auth/bootstrap-status?t=${Date.now()}`);
-                const hasUsers = Boolean(res?.data?.hasUsers);
-                if (!cancelled && !hasUsers) {
-                    navigate('/setup-owner', { replace: true });
-                }
-            } catch {
-                // ignore: server may still be starting
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [navigate, location.state]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
