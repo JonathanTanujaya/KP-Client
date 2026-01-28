@@ -78,6 +78,30 @@ export const useAuthStore = create(
         return true;
       },
 
+      // Login as guest (demo mode - no authentication required)
+      loginAsGuest: () => {
+        const guestUser = {
+          id: 0,
+          username: 'guest',
+          nama: 'Tamu',
+          role: 'owner', // Give full access for demo
+          avatar: null,
+          isGuest: true,
+        };
+        set({ user: guestUser, isAuthenticated: true, token: 'guest-token' });
+
+        useActivityLogStore.getState().addLog({
+          userId: guestUser.id,
+          username: guestUser.username,
+          userName: guestUser.nama,
+          userRole: guestUser.role,
+          action: 'login',
+          description: 'Masuk sebagai Tamu (Demo Mode)',
+        });
+
+        return true;
+      },
+
       // Logout
       logout: async () => {
         const currentUser = get().user;
@@ -93,11 +117,14 @@ export const useAuthStore = create(
           });
         }
 
-        try {
-          const api = await getApi();
-          await api.post('/auth/logout');
-        } catch (_) {
-          // ignore
+        // Skip API call for guest users
+        if (!currentUser?.isGuest) {
+          try {
+            const api = await getApi();
+            await api.post('/auth/logout');
+          } catch (_) {
+            // ignore
+          }
         }
 
         set({ user: null, isAuthenticated: false, token: null, users: [] });

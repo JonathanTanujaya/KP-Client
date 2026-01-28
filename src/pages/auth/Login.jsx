@@ -7,7 +7,7 @@ import { Eye, EyeOff, ArrowRight, AlertCircle, Box } from 'lucide-react';
 export default function Login() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { login } = useAuthStore();
+    const { login, loginAsGuest } = useAuthStore();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -185,6 +185,26 @@ export default function Login() {
                                     <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                                 </>
                             )}
+                        </button>
+
+                        <div className="relative my-4">
+                            <div className="absolute inset-0 flex items-center">
+                                <div className="w-full border-t border-gray-200"></div>
+                            </div>
+                            <div className="relative flex justify-center text-sm">
+                                <span className="px-2 bg-white text-gray-500">atau</span>
+                            </div>
+                        </div>
+
+                        <button
+                            type="button"
+                            onClick={() => {
+                                loginAsGuest();
+                                navigate('/');
+                            }}
+                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2"
+                        >
+                            <span>Masuk sebagai Tamu (Demo)</span>
                         </button>
                     </form>
                 </div>
