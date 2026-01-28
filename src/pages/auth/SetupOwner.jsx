@@ -42,11 +42,17 @@ export default function SetupOwner() {
         setIsLoading(true);
 
         try {
-            await api.post('/auth/bootstrap-owner', {
+            const res = await api.post('/auth/bootstrap-owner', {
                 nama,
                 username,
                 password,
             });
+
+            if (res?.data?.alreadyBootstrapped) {
+                toast.info('Setup owner sudah pernah dilakukan. Silakan login.');
+                navigate('/login', { replace: true });
+                return;
+            }
 
             let ok = false;
             try {
@@ -68,6 +74,7 @@ export default function SetupOwner() {
 
             if (status === 409) {
                 // bootstrap already completed
+                toast.info('Setup owner sudah pernah dilakukan. Silakan login.');
                 navigate('/login', { replace: true });
                 return;
             }
