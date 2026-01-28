@@ -210,9 +210,14 @@ function App() {
               <Route
                 path="backup-restore"
                 element={
-                  <ProtectedRoute permission="settings">
-                    <BackupRestore />
-                  </ProtectedRoute>
+                  // Only accessible on localhost (dev mode)
+                  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? (
+                    <ProtectedRoute permission="settings">
+                      <BackupRestore />
+                    </ProtectedRoute>
+                  ) : (
+                    <Navigate to="/settings/users" replace />
+                  )
                 }
               />
             </Route>

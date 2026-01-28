@@ -35,6 +35,12 @@ import {
   EyeOff,
 } from 'lucide-react';
 
+// Check if running on localhost (developer mode)
+const isLocalhost = () => {
+  const hostname = window.location.hostname;
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+};
+
 // Inventory-only navigation (finance & non-inventory masters removed)
 const allMenuItems = [
   {
@@ -83,7 +89,8 @@ const allMenuItems = [
     submenu: [
       { title: 'Manajemen User', path: '/settings/users', icon: UserCog },
       { title: 'Log Aktivitas', path: '/settings/activity-log', icon: ClipboardList },
-      { title: 'Backup & Restore', path: '/settings/backup-restore', icon: FileText },
+      // Backup & Restore only visible on localhost (dev mode)
+      ...(isLocalhost() ? [{ title: 'Backup & Restore', path: '/settings/backup-restore', icon: FileText }] : []),
     ],
   },
 ];
