@@ -27,6 +27,27 @@ import LogAktivitas from './pages/settings/LogAktivitas';
 import BackupRestore from './pages/settings/BackupRestore';
 import { useAuthStore } from './store/authStore';
 
+// Helper to check if running on localhost (developer mode only)
+const isLocalDev = () => {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname;
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.') ||
+    hostname === '0.0.0.0'
+  );
+};
+
+// Route wrapper that only renders children on localhost, otherwise redirects
+function DevOnlyRoute({ children }) {
+  if (!isLocalDev()) {
+    return <Navigate to="/settings/users" replace />;
+  }
+  return children;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -210,14 +231,11 @@ function App() {
               <Route
                 path="backup-restore"
                 element={
-                  // Only accessible on localhost (dev mode)
-                  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? (
+                  <DevOnlyRoute>
                     <ProtectedRoute permission="settings">
                       <BackupRestore />
                     </ProtectedRoute>
-                  ) : (
-                    <Navigate to="/settings/users" replace />
-                  )
+                  </DevOnlyRoute>
                 }
               />
             </Route>

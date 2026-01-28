@@ -36,9 +36,18 @@ import {
 } from 'lucide-react';
 
 // Check if running on localhost (developer mode)
+// Returns true ONLY for local development, false for Vercel/production
 const isLocalhost = () => {
+  if (typeof window === 'undefined') return false;
   const hostname = window.location.hostname;
-  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+  // Explicitly check for localhost variants only
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname.startsWith('192.168.') ||
+    hostname.startsWith('10.') ||
+    hostname === '0.0.0.0'
+  );
 };
 
 // Inventory-only navigation (finance & non-inventory masters removed)
