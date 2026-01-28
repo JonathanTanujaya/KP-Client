@@ -230,13 +230,7 @@ function App() {
               />
               <Route
                 path="backup-restore"
-                element={
-                  <DevOnlyRoute>
-                    <ProtectedRoute permission="settings">
-                      <BackupRestore />
-                    </ProtectedRoute>
-                  </DevOnlyRoute>
-                }
+                element={<Navigate to="/settings/users" replace />}
               />
             </Route>
 
