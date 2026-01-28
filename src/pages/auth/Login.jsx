@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/api/axios';
 import { Eye, EyeOff, ArrowRight, AlertCircle, Box } from 'lucide-react';
 
 export default function Login() {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useAuthStore();
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
@@ -15,6 +16,11 @@ export default function Login() {
     const [shake, setShake] = useState(false);
 
     useEffect(() => {
+        // If we came from setup-owner (via replace), skip the bootstrap check
+        // to avoid redirect loop when backend has eventual consistency issues
+        const cameFromSetup = location.state?.fromSetup === true;
+        if (cameFromSetup) return;
+
         let cancelled = false;
 
         (async () => {
@@ -33,7 +39,7 @@ export default function Login() {
         return () => {
             cancelled = true;
         };
-    }, [navigate]);
+    }, [navigate, location.state]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

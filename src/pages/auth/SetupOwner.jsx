@@ -55,7 +55,7 @@ export default function SetupOwner() {
             if (res?.data?.alreadyBootstrapped) {
                 toast.info('Setup owner sudah pernah dilakukan. Silakan login.');
                 setIsRedirecting(true);
-                navigate('/login', { replace: true });
+                navigate('/login', { replace: true, state: { fromSetup: true } });
                 return;
             }
 
@@ -72,7 +72,7 @@ export default function SetupOwner() {
                 navigate('/', { replace: true });
             } else {
                 toast.success('Akun owner berhasil dibuat. Silakan login.');
-                navigate('/login', { replace: true });
+                navigate('/login', { replace: true, state: { fromSetup: true } });
             }
         } catch (err) {
             const status = err?.response?.status;
@@ -82,7 +82,7 @@ export default function SetupOwner() {
                 // bootstrap already completed
                 toast.info('Setup owner sudah pernah dilakukan. Silakan login.');
                 setIsRedirecting(true);
-                navigate('/login', { replace: true });
+                navigate('/login', { replace: true, state: { fromSetup: true } });
                 return;
             }
 
