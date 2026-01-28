@@ -23,13 +23,16 @@ export default function BackupRestore() {
   const [backupLoading, setBackupLoading] = useState(false);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  const [seedLoading, setSeedLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [restoreResult, setRestoreResult] = useState(null);
   const [resetResult, setResetResult] = useState(null);
+  const [seedResult, setSeedResult] = useState(null);
   const fileInputRef = useRef(null);
 
   const canRestart = useMemo(() => typeof window !== 'undefined' && window.stoir?.restartApp, []);
-  const canDevReset = info?.isPackaged === false;
+  // Allow reset for both dev (SQLite) and production (PostgreSQL)
+  const canReset = info?.provider === 'postgres' || info?.isPackaged === false;
 
   const loadInfo = async () => {
     setLoadingInfo(true);
@@ -99,7 +102,7 @@ export default function BackupRestore() {
 
   const handleDevReset = async () => {
     const ok = window.confirm(
-      'DEV RESET: Ini akan menghapus database dan menghapus semua data aplikasi. Lanjutkan?'
+      'RESET DATABASE: Ini akan menghapus SEMUA data aplikasi (master, transaksi, user). Lanjutkan?'
     );
     if (!ok) return;
 
@@ -113,26 +116,58 @@ export default function BackupRestore() {
 
       // Wipe persisted client state (auth, logs, etc)
       try {
-        window.localStorage?.removeItem?.('auth-storage');
+        // Auth uses sessionStorage
+        window.sessionStorage?.removeItem?.('auth-storage');
+        // Activity log uses localStorage (default persist)
         window.localStorage?.removeItem?.('activity-log-storage');
         window.localStorage?.removeItem?.('theme-storage');
       } catch {
         // ignore
       }
 
-      if (data?.requiresRestart && canRestart) {
-        await handleRestart('/setup-owner');
+      // PostgreSQL reset doesn't require restart
+      if (data?.provider === 'postgres' || !data?.requiresRestart) {
+        // Redirect to login (user was deleted, need to setup owner again or login)
+        window.location.href = '/login';
         return;
       }
 
-      // If restart is not available (or fails), ensure we don't end up on a protected blank state.
-      window.location.href = '/setup-owner';
+      // SQLite needs restart
+      if (data?.requiresRestart && canRestart) {
+        await handleRestart('/login');
+        return;
+      }
+
+      // Fallback: redirect to login
+      window.location.href = '/login';
     } catch (err) {
       const msg = err?.response?.data?.error || 'Gagal reset aplikasi.';
       setResetResult({ ok: false, message: msg, requiresRestart: false });
     }
 
     setResetLoading(false);
+  };
+
+  const handleSeedData = async () => {
+    const ok = window.confirm(
+      'SEED DATA DEMO: Ini akan menambahkan data demo (area, kategori, supplier, customer, barang) ke database. Lanjutkan?'
+    );
+    if (!ok) return;
+
+    setSeedLoading(true);
+    setSeedResult(null);
+
+    try {
+      const res = await api.post('/admin/db/seed');
+      const data = res?.data || { ok: true };
+      setSeedResult(data);
+      await loadInfo();
+    } catch (err) {
+      const msg = err?.response?.data?.error || 'Gagal seed database.';
+      setSeedResult({ ok: false, message: msg });
+    }
+
+    setSeedLoading(false);
   };
 
   const clearSelectedFile = () => {
@@ -276,25 +311,49 @@ export default function BackupRestore() {
         ) : null}
       </Card>
 
-      {canDevReset ? (
+      <Card>
+        <h3 className="text-base font-semibold text-blue-600">Seed Data Demo</h3>
+        <p className="text-sm text-gray-600 mt-1">
+          Menambahkan data contoh (area, kategori, supplier, customer, barang) ke database untuk testing.
+        </p>
+
+        <div className="mt-4 flex flex-col md:flex-row gap-2 md:items-center md:justify-between">
+          <Button variant="primary" onClick={handleSeedData} disabled={seedLoading}>
+            {seedLoading ? 'Memproses...' : 'Seed Data Demo'}
+          </Button>
+
+          {seedResult ? (
+            <div className="flex items-center gap-2">
+              <Badge variant={seedResult.ok ? 'success' : 'error'}>
+                {seedResult.ok ? 'Berhasil' : 'Gagal'}
+              </Badge>
+              <div className="text-sm text-gray-700">
+                {seedResult.message || (seedResult.ok ? 'Data demo berhasil ditambahkan.' : 'Terjadi kesalahan.')}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </Card>
+
+      {canReset ? (
         <Card>
-          <h3 className="text-base font-semibold text-gray-900">Dev Reset (Hapus Semua Data)</h3>
+          <h3 className="text-base font-semibold text-red-600">Reset Database (Hapus Semua Data)</h3>
           <p className="text-sm text-gray-600 mt-1">
-            Khusus mode development. Ini akan menghapus database dan mengulang aplikasi dari awal.
+            <strong className="text-red-600">PERINGATAN:</strong> Ini akan menghapus SEMUA data (master, transaksi, user) dan tidak bisa dikembalikan.
           </p>
 
           <div className="mt-4 flex flex-col md:flex-row gap-2 md:items-center md:justify-between">
             <Button variant="danger" onClick={handleDevReset} disabled={resetLoading}>
-              {resetLoading ? 'Memproses...' : 'Reset Aplikasi & Hapus Database'}
+              {resetLoading ? 'Memproses...' : 'Reset Database'}
             </Button>
 
             {resetResult ? (
               <div className="flex items-center gap-2">
-                <Badge variant={resetResult.ok ? 'warning' : 'error'}>
-                  {resetResult.ok ? 'Perlu Restart' : 'Gagal'}
+                <Badge variant={resetResult.ok ? 'success' : 'error'}>
+                  {resetResult.ok ? 'Berhasil' : 'Gagal'}
                 </Badge>
                 <div className="text-sm text-gray-700">
-                  {resetResult.message || (resetResult.ok ? 'Reset sukses. Restart aplikasi untuk mulai dari awal.' : 'Terjadi kesalahan.')}
+                  {resetResult.message || (resetResult.ok ? 'Reset sukses.' : 'Terjadi kesalahan.')}
                 </div>
               </div>
             ) : null}
