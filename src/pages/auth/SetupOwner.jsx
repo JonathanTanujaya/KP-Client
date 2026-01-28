@@ -14,8 +14,12 @@ export default function SetupOwner() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isRedirecting, setIsRedirecting] = useState(false);
 
     useEffect(() => {
+        // Skip bootstrap-status check if we're already redirecting after successful submit
+        if (isRedirecting) return;
+
         let cancelled = false;
 
         (async () => {
@@ -34,7 +38,7 @@ export default function SetupOwner() {
         return () => {
             cancelled = true;
         };
-    }, [navigate]);
+    }, [navigate, isRedirecting]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -50,6 +54,7 @@ export default function SetupOwner() {
 
             if (res?.data?.alreadyBootstrapped) {
                 toast.info('Setup owner sudah pernah dilakukan. Silakan login.');
+                setIsRedirecting(true);
                 navigate('/login', { replace: true });
                 return;
             }
@@ -61,6 +66,7 @@ export default function SetupOwner() {
                 ok = false;
             }
 
+            setIsRedirecting(true);
             if (ok) {
                 toast.success('Akun owner berhasil dibuat. Login otomatis berhasil.');
                 navigate('/', { replace: true });
@@ -75,6 +81,7 @@ export default function SetupOwner() {
             if (status === 409) {
                 // bootstrap already completed
                 toast.info('Setup owner sudah pernah dilakukan. Silakan login.');
+                setIsRedirecting(true);
                 navigate('/login', { replace: true });
                 return;
             }
